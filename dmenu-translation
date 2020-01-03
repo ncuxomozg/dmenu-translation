@@ -8,7 +8,6 @@ use feature "say";
 use FindBin;
 use LWP::UserAgent;
 use JSON::XS qw| decode_json |;
-use Encode   qw| encode_utf8 |;
 
 use constant CONFIG_FILE => "$FindBin::Bin/config.conf";
 use constant BASE_URL    => "https://translate.yandex.net/api/v1.5/tr.json/translate";

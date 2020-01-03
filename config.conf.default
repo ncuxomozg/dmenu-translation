@@ -1,4 +1,4 @@
-# Enter your yandex's APS key
+# Enter your yandex's API key
 yandex_key enter_your_key
 
 # How many lines dmenu will show
