@@ -9,8 +9,14 @@ use FindBin;
 use LWP::UserAgent;
 use JSON::XS qw| decode_json |;
 
-use constant CONFIG_FILE => "$FindBin::Bin/config.conf";
-use constant BASE_URL    => "https://translate.yandex.net/api/v1.5/tr.json/translate";
+use constant CONFIG_PATHS => [
+    "$ENV{HOME}/.config/dmenu-translation.conf",
+    "$ENV{HOME}/.dmenu-translation.conf",
+    "$FindBin::Bin/dmenu-translation.conf",
+];
+
+
+use constant BASE_URL => "https://translate.yandex.net/api/v1.5/tr.json/translate";
 
 my $config = read_config();
 my $dmenu = $config->{dmenu} || 'dmenu';
@@ -68,9 +74,15 @@ sub prompt { qx| $dmenu -p 'Translate:' < /dev/null | }
 sub read_config {
     my $config = {};
 
-    die "Configuration file doesn't exist!" unless -f CONFIG_FILE;
+    my $config_file;
 
-    open(my $fh, "<", CONFIG_FILE) or die "Can't open file $!";
+    for ( @{ CONFIG_PATHS() } ) {
+        $config_file = $_ if -f $_;
+    }
+
+    die "Can't find configuration file" unless $config_file;
+
+    open(my $fh, "<", $config_file) or die "Can't open file $!";
 
     $/ = undef;
     my $data = <$fh>;
