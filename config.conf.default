@@ -1,0 +1,8 @@
+# Enter your yandex's APS key
+yandex_key enter_your_key
+
+# How many lines dmenu will show
+number_of_lines 5
+
+# Dmenu executable path
+# dmenu dmenu

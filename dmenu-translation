@@ -1,0 +1,94 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use feature "say";
+
+use FindBin;
+use LWP::UserAgent;
+use JSON::XS qw| decode_json |;
+use Encode   qw| encode_utf8 |;
+
+use constant CONFIG_FILE => "$FindBin::Bin/config.conf";
+use constant BASE_URL    => "https://translate.yandex.net/api/v1.5/tr.json/translate";
+
+my $config = read_config();
+my $dmenu = $config->{dmenu} || 'dmenu';
+
+my $ua = LWP::UserAgent->new( ssl_opts => { verify_hostname => 0 } );
+
+if (my $word = prompt()) {
+    $word =~ s/\n//g; # remove trailing new lines
+    if ( my $result = request_api( $word ) ) {
+        print_result( $result->{text} )
+            if defined $result->{text} && ref $result->{text} eq 'ARRAY';
+    }
+}
+
+
+sub print_result {
+    my $words = shift;
+    
+    return unless $words;
+
+    my $words_line = join '\n', @{ $words || [] };
+    my $number_of_lines = $config->{results} || 5;
+
+    qx{ echo "$words_line" | dmenu -i -p "Translation:" -l $number_of_lines }
+}
+
+
+sub request_api {
+    my $word = shift or return;
+
+    my $lang = ( $word =~ /[а-яА-Я]+/ ) ? "en" : "ru"; 
+
+    my $url = sprintf(
+        BASE_URL . "?key=%s&text=%s&lang=%s&format=plain",
+        $config->{yandex_key},
+        $word,
+        $lang,
+    );
+
+    my $response = $ua->get($url);
+
+    if ($response->is_success) {
+        return decode_json( $response->content );
+    }
+    else {
+        die "Can't get access to the API: " . $response->status_line;
+    }
+
+}
+
+
+sub prompt { qx| $dmenu -p 'Translate:' < /dev/null | }
+
+
+sub read_config {
+    my $config = {};
+
+    die "Configuration file doesn't exist!" unless -f CONFIG_FILE;
+
+    open(my $fh, "<", CONFIG_FILE) or die "Can't open file $!";
+
+    $/ = undef;
+    my $data = <$fh>;
+
+    for ( split "\n", $data ) {
+        next if $_ =~ /^#/;
+
+        my ( $k, $v ) = $_ =~ /^(\S+)\s([^#]+.*)$/;
+
+        if ($k) {
+            $config->{$k} = $v || undef;
+        }
+    }
+
+    close($fh);
+
+    return $config;
+}
+
+__END__
