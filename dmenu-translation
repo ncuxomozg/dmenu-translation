@@ -23,18 +23,19 @@ my $dmenu = $config->{dmenu} || 'dmenu';
 
 my $ua = LWP::UserAgent->new( ssl_opts => { verify_hostname => 0 } );
 
-if (my $word = prompt()) {
-    $word =~ s/\n//g; # remove trailing new lines
-    if ( my $result = request_api( $word ) ) {
-        print_result( $result->{text} )
-            if defined $result->{text} && ref $result->{text} eq 'ARRAY';
-    }
+
+my $word;
+my $result;
+
+while ($word = prompt($result)) {
+    $word   =~ s/\n//g; # remove trailing new lines
+    $result = request_api($word);
 }
 
 
 sub print_result {
     my $words = shift;
-    
+
     return unless $words;
 
     my $words_line = join '\n', @{ $words || [] };
@@ -68,7 +69,14 @@ sub request_api {
 }
 
 
-sub prompt { qx| $dmenu -p 'Translate:' < /dev/null | }
+sub prompt { 
+    my $result = shift;
+
+    return ( defined $result->{text} && ref $result->{text} eq 'ARRAY' )
+        ? print_result( $result->{text} )
+        : qx| $dmenu -p 'Translate:' < /dev/null |
+        ;
+}
 
 
 sub read_config {
